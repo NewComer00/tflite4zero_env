@@ -33,12 +33,13 @@ GPU/XNNPACK acceleration not supported.
 ***
 
 ## 运行示例项目<br>Run Demo Project
+1. ./build_project.sh label_image_tf1.14
 
-1. cp -r ./project/label_image_tf1.14/data ./build/label_image_tf1.14/
+2. cp -r ./project/label_image_tf1.14/data ./build/label_image_tf1.14/
 
-2. cd ./build/label_image_tf1.14/data
+3. cd ./build/label_image_tf1.14/data
 
-3. ../bin/label_image_tf1.14 -m ./mobnet_v3_coco_official.tflite -l ./labelmap.txt -i dogs.bmp -o 1 -t 1
+4. ../bin/label_image_tf1.14 -m ./mobnet_v3_coco_official.tflite -l ./labelmap.txt -i dogs.bmp -o 1 -t 1
 
 注意：输入给模型的图片文件必须是bmp，且只能是文件名，不能有路径。输出的图片在当前目录。
 
