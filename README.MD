@@ -19,7 +19,6 @@ GPU/XNNPACK acceleration not supported.
 4. 生成好的项目会在./build目录中。
 
 ***
-***
 
 ## Create & Build Project
 
@@ -31,7 +30,6 @@ GPU/XNNPACK acceleration not supported.
 
 4. Your built project is fresh in ./build folder!
 
-***
 ***
 
 ## 运行示例项目<br>Run Demo Project
@@ -47,7 +45,6 @@ GPU/XNNPACK acceleration not supported.
 Note: The input iamge needs to be *.bmp without path. The output image is generated in the current directory.
 
 ***
-***
 
 ## 如需交叉编译<br>if Cross Compiling is Needed
 交叉编译工具链（使用压缩包中的6.5.0版本）：
@@ -60,13 +57,13 @@ https://github.com/rvagg/rpi-newer-crosstools/archive/eb68350c5c8ec1663b7fe52c74
 
 CC/CXX/AR variables in Makefile need to be set.
 
-'''
+```
 /your/path/to/rpi-newer-crosstools/x64-gcc-6.5.0/arm-rpi-linux-gnueabihf/bin/arm-rpi-linux-gnueabihf-gcc 
  
 /your/path/to/rpi-newer-crosstools/x64-gcc-6.5.0/arm-rpi-linux-gnueabihf/bin/arm-rpi-linux-gnueabihf-g++ 
  
 /your/path/to/rpi-newer-crosstools/x64-gcc-6.5.0/arm-rpi-linux-gnueabihf/bin/arm-rpi-linux-gnueabihf-ar
-'''
+```
 
 交叉编译tensorflowlite库(本项目已编译好)：
 
