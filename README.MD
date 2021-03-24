@@ -14,7 +14,7 @@ GPU/XNNPACK acceleration not supported.
 
 2. 编写代码。
 
-3. 执行编译脚本 ./build_project.sh <你的项目文件夹的名字，不需要前面的路径>
+3. 执行编译脚本 ```./build_project.sh <你的项目文件夹的名字，不需要前面的路径>```
 
 4. 生成好的项目会在./build目录中。
 
@@ -26,20 +26,20 @@ GPU/XNNPACK acceleration not supported.
 
 2. Coding~~~
 
-3. ./build_project.sh <no_path_only_the_name_of_your_project_folder>
+3. ```./build_project.sh <no_path_only_the_name_of_your_project_folder>```
 
 4. Your built project is fresh in ./build folder!
 
 ***
 
 ## 运行示例项目<br>Run Demo Project
-1. ./build_project.sh label_image_tf1.14
+1. ```./build_project.sh label_image_tf1.14```
 
-2. cp -r ./project/label_image_tf1.14/data ./build/label_image_tf1.14/
+2. ```cp -r ./project/label_image_tf1.14/data ./build/label_image_tf1.14/```
 
-3. cd ./build/label_image_tf1.14/data
+3. ```cd ./build/label_image_tf1.14/data```
 
-4. ../bin/label_image_tf1.14 -m ./mobnet_v3_coco_official.tflite -l ./labelmap.txt -i dogs.bmp -o 1 -t 1
+4. ```../bin/label_image_tf1.14 -m ./mobnet_v3_coco_official.tflite -l ./labelmap.txt -i dogs.bmp -o 1 -t 1```
 
 注意：输入给模型的图片文件必须是bmp，且只能是文件名，不能有路径。输出的图片在当前目录。
 
