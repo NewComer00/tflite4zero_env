@@ -1,4 +1,6 @@
 /* Copyright 2017 The TensorFlow Authors.
+    Modifications copyright 2021 Wanghao Xu.
+
    Portions copyright 2019 clouwdwise consulting. 
    All Rights Reserved.
 
@@ -15,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "label_image.h"
+#include "label_image.h" // file path changed by Xu
 
 #include <fcntl.h>      // NOLINT(build/include_order)
 #include <getopt.h>     // NOLINT(build/include_order)
@@ -37,9 +39,11 @@ limitations under the License.
 #include <unordered_set>
 #include <vector>
 
+// all *delegate were removed by Xu
+
 #include "absl/memory/memory.h"
-#include "bitmap_helpers.h"
-#include "get_top_n.h"
+#include "bitmap_helpers.h" // file path changed by Xu
+#include "get_top_n.h" // file path changed by Xu
 #include "tensorflow/lite/kernels/register.h"
 #include "tensorflow/lite/optional_debug_tools.h"
 #include "tensorflow/lite/profiling/profiler.h"

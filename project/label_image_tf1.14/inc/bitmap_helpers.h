@@ -1,4 +1,5 @@
 /* Copyright 2017 The TensorFlow Authors. All Rights Reserved.
+    Modifications copyright 2021 Wanghao Xu.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,9 +17,9 @@ limitations under the License.
 #ifndef TENSORFLOW_LITE_EXAMPLES_LABEL_IMAGE_BITMAP_HELPERS_H_
 #define TENSORFLOW_LITE_EXAMPLES_LABEL_IMAGE_BITMAP_HELPERS_H_
 
-#include "BMP.h"
-#include "bitmap_helpers_impl.h"
-#include "label_image.h"
+#include "BMP.h" // file path changed by Xu
+#include "bitmap_helpers_impl.h" // file path changed by Xu
+#include "label_image.h" // file path changed by Xu
 
 namespace tflite {
 namespace label_image {

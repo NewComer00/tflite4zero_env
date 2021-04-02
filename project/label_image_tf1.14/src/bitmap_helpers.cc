@@ -1,4 +1,5 @@
 /* Copyright 2017 The TensorFlow Authors. All Rights Reserved.
+    Modifications copyright 2021 Wanghao Xu.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,7 +23,7 @@ limitations under the License.
 
 #include <unistd.h>  // NOLINT(build/include_order)
 
-#include "bitmap_helpers.h"
+#include "bitmap_helpers.h" // changed by Xu
 
 #define LOG(x) std::cerr
 #define LINE_WIDTH 2

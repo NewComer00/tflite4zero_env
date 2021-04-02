@@ -1,4 +1,5 @@
 /* Copyright 2017 The TensorFlow Authors. All Rights Reserved.
+    Modifications copyright 2021 Wanghao Xu.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "label_image.h"
+#include "label_image.h" // file path changed by Xu
 
 #include <fcntl.h>      // NOLINT(build/include_order)
 #include <getopt.h>     // NOLINT(build/include_order)
@@ -34,6 +35,8 @@ limitations under the License.
 #include <string>
 #include <unordered_set>
 #include <vector>
+
+// all *delegate were removed by Xu
 
 #include "absl/memory/memory.h"
 #include "tensorflow/lite/examples/label_image/bitmap_helpers.h"
