@@ -1,0 +1,116 @@
+# The Makefile should be executed by the build_project.sh script
+
+
+# The final executable file name is the directory name of the current project.
+# Such as label_image_tf1.14
+TARGET_EXEC := \
+$(notdir $(patsubst %/,%,$(dir $(lastword $(abspath $(MAKEFILE_LIST)))))))
+
+# Directory containing all items
+PROJS_DIR := ./project
+
+# The outermost directory of the tensorflow source code and the third-party library directories it depends on
+TF_DIR := ./tensorflow_src
+TF_DEPENDENCY_DIR := $(TF_DIR)/tensorflow/lite/tools/make/downloads
+
+# The directory where the generated project is located, the directory where the project obj and executable files are located
+BUILD_DIR := ./build/$(TARGET_EXEC)
+OBJ_DIR := $(BUILD_DIR)/obj
+BIN_DIR := $(BUILD_DIR)/bin
+
+# The directory where the project source files, header files and library files are located
+SRC_DIRS := $(PROJS_DIR)/$(TARGET_EXEC)/src
+INC_DIRS := $(PROJS_DIR)/$(TARGET_EXEC)/inc \
+$(TF_DIR) \
+$(TF_DEPENDENCY_DIR)/flatbuffers/include \
+$(TF_DEPENDENCY_DIR)/absl \
+$(TF_DEPENDENCY_DIR)/googletest/googlemock/include \
+$(TF_DEPENDENCY_DIR)/googletest/googletest/include
+LIB_DIRS := ./lib
+
+# Source files that meet the requirements
+SRCS += $(foreach src_dir,$(SRC_DIRS),$(wildcard $(src_dir)/*.cpp))
+SRCS += $(foreach src_dir,$(SRC_DIRS),$(wildcard $(src_dir)/*.cc))
+SRCS += $(foreach src_dir,$(SRC_DIRS),$(wildcard $(src_dir)/*.c))
+
+# Used to handle multiple source directories
+vpath %*.cpp %(SRC_DIRS)
+vpath %*.cc %(SRC_DIRS)
+vpath %*.c %(SRC_DIRS)
+
+# Libraries to be linked to
+LIBS := -ltensorflow-lite \
+-latomic \
+-lpthread \
+-lrt \
+-ldl
+
+# File name and storage path of obj file
+OBJS := $(SRCS:%=$(OBJ_DIR)/%.o)
+
+
+# ================================================ ========
+
+
+# Specify the header file directory to be included for the compiler
+CPPFLAGS := $(addprefix -I,$(INC_DIRS))
+
+# Specify precompilation parameters for the C++ compiler
+CXXFLAGS += \
+-march=armv6 \
+-mfpu=vfp \
+-funsafe-math-optimizations \
+-ftree-vectorize \
+-fPIC \
+-marm
+
+# Specify precompilation parameters for the C compiler
+CFLAGS += \
+-march=armv6 \
+-mfpu=vfp \
+-funsafe-math-optimizations \
+-ftree-vectorize \
+-fPIC \
+-marm
+
+# Specify link library and parameters
+LDFLAGS := \
+$(addprefix -L,$(LIB_DIRS)) \
+$(LIBS) \
+-Wl,--no-export-dynamic \
+-Wl,--exclude-libs,ALL \
+-Wl,--gc-sections \
+-Wl,--as-needed
+
+
+# ================================================ ========
+
+
+# Link all obj files
+$(BIN_DIR)/$(TARGET_EXEC): $(OBJS)
+mkdir -p $(dir $@)
+$(CXX) $(OBJS) -o $@ $(LDFLAGS)
+
+# Compile all c source files
+$(OBJ_DIR)/%.c.o: %.c
+mkdir -p $(dir $@)
+$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
+# Compile all cpp source files
+$(OBJ_DIR)/%.cpp.o: %.cpp
+mkdir -p $(dir $@)
+$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+
+# Compile all cc source files
+$(OBJ_DIR)/%.cc.o: %.cc
+mkdir -p $(dir $@)
+$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+
+
+# ================================================ ========
+
+
+# Clear the project build directory
+.PHONY: clean
+clean:
+rm -r $(BUILD_DIR)

@@ -1,6 +1,13 @@
-# 最终可执行文件名，可以外部定义，必须是projs目录中存在的目录名。
-# 默认为label_image_tf1.14。
-TARGET_EXEC ?= label_image_tf1.14
+# 该Makefile应当通过build_project.sh脚本执行
+
+
+# =========================================================
+
+
+# 最终可执行文件名，是当前项目的目录名。
+# 如label_image_tf1.14
+TARGET_EXEC := \
+	$(notdir $(patsubst %/,%,$(dir $(lastword $(abspath $(MAKEFILE_LIST))))))
 
 # 包含所有项目的目录
 PROJS_DIR := ./project
@@ -24,13 +31,15 @@ INC_DIRS := $(PROJS_DIR)/$(TARGET_EXEC)/inc \
 	$(TF_DEPENDENCY_DIR)/googletest/googletest/include 
 LIB_DIRS := ./lib
 
-# 符合要求的源文件名称
-SRCS := $(shell find $(SRC_DIRS) \
-	-name *.cpp -or \
-	-name *.cc -or \
-	-name *.c \
-	 | xargs basename -a \
-	)
+# 符合要求的源文件
+SRCS += $(foreach src_dir,$(SRC_DIRS),$(wildcard $(src_dir)/*.cpp))
+SRCS += $(foreach src_dir,$(SRC_DIRS),$(wildcard $(src_dir)/*.cc))
+SRCS += $(foreach src_dir,$(SRC_DIRS),$(wildcard $(src_dir)/*.c))
+
+# 用于处理多个源目录的情况
+vpath %*.cpp %(SRC_DIRS)
+vpath %*.cc %(SRC_DIRS)
+vpath %*.c %(SRC_DIRS)
 
 # 需要的链接库
 LIBS := -ltensorflow-lite \
@@ -41,6 +50,9 @@ LIBS := -ltensorflow-lite \
 
 # obj文件的文件名及存放路径
 OBJS := $(SRCS:%=$(OBJ_DIR)/%.o)
+
+
+# =========================================================
 
 
 # 为编译器指定要包含的头文件目录
@@ -83,17 +95,17 @@ $(BIN_DIR)/$(TARGET_EXEC): $(OBJS)
 	$(CXX) $(OBJS) -o $@ $(LDFLAGS)
 
 # 编译所有c源文件
-$(OBJ_DIR)/%.c.o: $(SRC_DIRS)/%.c
+$(OBJ_DIR)/%.c.o: %.c
 	mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 # 编译所有cpp源文件
-$(OBJ_DIR)/%.cpp.o: $(SRC_DIRS)/%.cpp
+$(OBJ_DIR)/%.cpp.o: %.cpp
 	mkdir -p $(dir $@)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 # 编译所有cc源文件
-$(OBJ_DIR)/%.cc.o: $(SRC_DIRS)/%.cc
+$(OBJ_DIR)/%.cc.o: %.cc
 	mkdir -p $(dir $@)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
