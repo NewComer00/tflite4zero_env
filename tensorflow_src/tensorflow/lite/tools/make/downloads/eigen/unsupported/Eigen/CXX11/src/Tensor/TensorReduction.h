@@ -15,7 +15,7 @@
 // so we'll use a macro to make clang happy.
 #ifndef KERNEL_FRIEND
 #if defined(__clang__) && (defined(__CUDA__) || defined(__HIP__))
-#define KERNEL_FRIEND friend __global__
+#define KERNEL_FRIEND friend __global__ EIGEN_HIP_LAUNCH_BOUNDS_1024
 #else
 #define KERNEL_FRIEND friend
 #endif
@@ -242,14 +242,26 @@ struct InnerMostDimReducer<Self, Op, true, true> {
       }
       return reducer.finalize(accum);
     } else {
+      const typename Self::Index UnrollSize =
+          (numValuesToReduce / (2*packetSize)) * 2*packetSize;
       const typename Self::Index VectorizedSize =
           (numValuesToReduce / packetSize) * packetSize;
       typename Self::PacketReturnType paccum =
           reducer.template initializePacket<typename Self::PacketReturnType>();
-      for (typename Self::Index j = 0; j < VectorizedSize; j += packetSize) {
+      typename Self::PacketReturnType paccum2 =
+          reducer.template initializePacket<typename Self::PacketReturnType>();
+      for (typename Self::Index j = 0; j < UnrollSize; j += packetSize * 2) {
         reducer.reducePacket(
             self.m_impl.template packet<Unaligned>(firstIndex + j), &paccum);
+        reducer.reducePacket(
+            self.m_impl.template packet<Unaligned>(firstIndex + j + packetSize),
+            &paccum2);
       }
+      for (typename Self::Index j = UnrollSize; j < VectorizedSize; j+= packetSize) {
+        reducer.reducePacket(self.m_impl.template packet<Unaligned>(
+                                 firstIndex + j), &paccum);
+      }
+      reducer.reducePacket(paccum2, &paccum);
       for (typename Self::Index j = VectorizedSize; j < numValuesToReduce;
            ++j) {
         reducer.reduce(self.m_impl.coeff(firstIndex + j), &accum);
@@ -415,24 +427,24 @@ struct GenericReducer {
 
 #if defined(EIGEN_USE_GPU) && (defined(EIGEN_GPUCC))
 template <int B, int N, typename S, typename R, typename I_>
-__global__ void FullReductionKernel(R, const S, I_, typename S::CoeffReturnType*, unsigned int*);
+__global__ EIGEN_HIP_LAUNCH_BOUNDS_1024 void FullReductionKernel(R, const S, I_, typename S::CoeffReturnType*, unsigned int*);
 
 
 #if defined(EIGEN_HAS_GPU_FP16)
 template <typename S, typename R, typename I_>
-__global__ void ReductionInitFullReduxKernelHalfFloat(R, const S, I_, internal::packet_traits<half>::type*);
+__global__ EIGEN_HIP_LAUNCH_BOUNDS_1024 void ReductionInitFullReduxKernelHalfFloat(R, const S, I_, internal::packet_traits<half>::type*);
 template <int B, int N, typename S, typename R, typename I_>
-__global__ void FullReductionKernelHalfFloat(R, const S, I_, half*, internal::packet_traits<half>::type*);
+__global__ EIGEN_HIP_LAUNCH_BOUNDS_1024 void FullReductionKernelHalfFloat(R, const S, I_, half*, internal::packet_traits<half>::type*);
 template <int NPT, typename S, typename R, typename I_>
-__global__ void InnerReductionKernelHalfFloat(R, const S, I_, I_, half*);
+__global__ EIGEN_HIP_LAUNCH_BOUNDS_1024 void InnerReductionKernelHalfFloat(R, const S, I_, I_, half*);
 
 #endif
 
 template <int NPT, typename S, typename R, typename I_>
-__global__ void InnerReductionKernel(R, const S, I_, I_, typename S::CoeffReturnType*);
+__global__ EIGEN_HIP_LAUNCH_BOUNDS_1024 void InnerReductionKernel(R, const S, I_, I_, typename S::CoeffReturnType*);
 
 template <int NPT, typename S, typename R, typename I_>
-__global__ void OuterReductionKernel(R, const S, I_, I_, typename S::CoeffReturnType*);
+__global__ EIGEN_HIP_LAUNCH_BOUNDS_1024 void OuterReductionKernel(R, const S, I_, I_, typename S::CoeffReturnType*);
 #endif
 
 /**

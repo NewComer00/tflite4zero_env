@@ -10,10 +10,43 @@
 #define EIGEN_RUNTIME_NO_MALLOC
 
 #include "main.h"
+#if EIGEN_HAS_CXX11
+#include "MovableScalar.h"
+#endif
 
 #include <Eigen/Core>
 
 using internal::UIntPtr;
+
+// A Scalar that asserts for uninitialized access.
+template<typename T>
+class SafeScalar {
+ public:
+  SafeScalar() : initialized_(false) {}
+  SafeScalar(const SafeScalar& other) {
+    *this = other;
+  }
+  SafeScalar& operator=(const SafeScalar& other) {
+    val_ = T(other);
+    initialized_ = true;
+    return *this;
+  }
+  
+  SafeScalar(T val) : val_(val), initialized_(true) {}
+  SafeScalar& operator=(T val) {
+    val_ = val;
+    initialized_ = true;
+  }
+  
+  operator T() const {
+    VERIFY(initialized_ && "Uninitialized access.");
+    return val_;
+  }
+ 
+ private:
+  T val_;
+  bool initialized_;
+};
 
 #if EIGEN_HAS_RVALUE_REFERENCES
 template <typename MatrixType>
@@ -75,11 +108,48 @@ void rvalue_transpositions(Index rows)
 
   Eigen::internal::set_is_malloc_allowed(true);
 }
+
+template <typename MatrixType>
+void rvalue_move(const MatrixType& m)
+{
+    // lvalue reference is copied
+    MatrixType b(m);
+    VERIFY_IS_EQUAL(b, m);
+
+    // lvalue reference is copied
+    MatrixType c{m};
+    VERIFY_IS_EQUAL(c, m);
+
+    // lvalue reference is copied
+    MatrixType d = m;
+    VERIFY_IS_EQUAL(d, m);
+
+    // rvalue reference is moved - copy constructor.
+    MatrixType e_src(m);
+    VERIFY_IS_EQUAL(e_src, m);
+    MatrixType e_dst(std::move(e_src));
+    VERIFY_IS_EQUAL(e_dst, m);
+
+    // rvalue reference is moved - copy constructor.
+    MatrixType f_src(m);
+    VERIFY_IS_EQUAL(f_src, m);
+    MatrixType f_dst = std::move(f_src);
+    VERIFY_IS_EQUAL(f_dst, m);
+    
+    // rvalue reference is moved - copy assignment.
+    MatrixType g_src(m);
+    VERIFY_IS_EQUAL(g_src, m);
+    MatrixType g_dst;
+    g_dst = std::move(g_src);
+    VERIFY_IS_EQUAL(g_dst, m);
+}
 #else
 template <typename MatrixType>
 void rvalue_copyassign(const MatrixType&) {}
 template<typename TranspositionsType>
 void rvalue_transpositions(Index) {}
+template <typename MatrixType>
+void rvalue_move(const MatrixType&) {}
 #endif
 
 EIGEN_DECLARE_TEST(rvalue_types)
@@ -106,5 +176,11 @@ EIGEN_DECLARE_TEST(rvalue_types)
     CALL_SUBTEST_3((rvalue_transpositions<PermutationMatrix<Dynamic, Dynamic, Index> >(internal::random<int>(1,EIGEN_TEST_MAX_SIZE))));
     CALL_SUBTEST_4((rvalue_transpositions<Transpositions<Dynamic, Dynamic, int> >(internal::random<int>(1,EIGEN_TEST_MAX_SIZE))));
     CALL_SUBTEST_4((rvalue_transpositions<Transpositions<Dynamic, Dynamic, Index> >(internal::random<int>(1,EIGEN_TEST_MAX_SIZE))));
+
+#if EIGEN_HAS_CXX11
+    CALL_SUBTEST_5(rvalue_move(Eigen::Matrix<MovableScalar<float>,1,3>::Random().eval()));
+    CALL_SUBTEST_5(rvalue_move(Eigen::Matrix<SafeScalar<float>,1,3>::Random().eval()));
+    CALL_SUBTEST_5(rvalue_move(Eigen::Matrix<SafeScalar<float>,Eigen::Dynamic,Eigen::Dynamic>::Random(1,3).eval()));
+#endif
   }
 }

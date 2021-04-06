@@ -26,6 +26,9 @@
 #if defined(__GNUC__) && (__GNUC__ >=9)
   #pragma GCC diagnostic ignored "-Wdeprecated-copy"
 #endif
+#if defined(__clang__) && (__clang_major__ >= 10)
+  #pragma clang diagnostic ignored "-Wdeprecated-copy"
+#endif
 
 #endif
 
@@ -428,6 +431,24 @@ void check_indexed_view()
     VERIFY_IS_APPROX(A(all, eii).col(0).eval(), A.col(eii(0)));
     A(all, eii).col(0) = A.col(eii(0));
   }
+
+  // bug 1815: IndexedView should allow linear access
+  {
+    VERIFY( MATCH( b(eii)(0), "3" ) );
+    VERIFY( MATCH( a(eii)(0), "3" ) );
+    VERIFY( MATCH( A(1,eii)(0), "103"));
+    VERIFY( MATCH( A(eii,1)(0), "301"));
+    VERIFY( MATCH( A(1,all)(1), "101"));
+    VERIFY( MATCH( A(all,1)(1), "101"));
+  }
+
+#if EIGEN_HAS_CXX11
+  //Bug IndexView with a single static row should be RowMajor:
+  {
+    // A(1, seq(0,2,1)).cwiseAbs().colwise().replicate(2).eval();
+    STATIC_CHECK(( (internal::evaluator<decltype( A(1,seq(0,2,1)) )>::Flags & RowMajorBit) == RowMajorBit ));
+  }
+#endif
 
 }
 

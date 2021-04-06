@@ -1,3 +1,4 @@
+
 // This file is part of Eigen, a lightweight C++ template library
 // for linear algebra.
 //
@@ -39,13 +40,16 @@
 // definitions.
 #include <limits>
 #include <algorithm>
+// Disable ICC's std::complex operator specializations so we can use our own.
+#define _OVERRIDE_COMPLEX_SPECIALIZATION_ 1
 #include <complex>
 #include <deque>
 #include <queue>
 #include <cassert>
 #include <list>
-#if __cplusplus >= 201103L
+#if __cplusplus >= 201103L || (defined(_MSVC_LANG) && _MSVC_LANG >= 201103L)
 #include <random>
+#include <chrono>
 #ifdef EIGEN_USE_THREADS
 #include <future>
 #endif
@@ -173,19 +177,21 @@ namespace Eigen
     EigenTest(const char* a_name, void (*func)(void))
       : m_name(a_name), m_func(func)
     {
-      ms_registered_tests.push_back(this);
+      get_registered_tests().push_back(this);
     }
     const std::string& name() const { return m_name; }
     void operator()() const { m_func(); }
 
-    static const std::vector<EigenTest*>& all() { return ms_registered_tests; }
+    static const std::vector<EigenTest*>& all() { return get_registered_tests(); }
   protected:
+    static std::vector<EigenTest*>& get_registered_tests()
+    {
+      static std::vector<EigenTest*>* ms_registered_tests = new std::vector<EigenTest*>();
+      return *ms_registered_tests;
+    }
     std::string m_name;
     void (*m_func)(void);
-    static std::vector<EigenTest*> ms_registered_tests;
   };
-
-  std::vector<EigenTest*> EigenTest::ms_registered_tests;
 
   // Declare and register a test, e.g.:
   //    EIGEN_DECLARE_TEST(mytest) { ... }
@@ -435,6 +441,7 @@ EIGEN_TEST_SCALAR_TEST_OVERLOAD(unsigned long long)
 EIGEN_TEST_SCALAR_TEST_OVERLOAD(float)
 EIGEN_TEST_SCALAR_TEST_OVERLOAD(double)
 EIGEN_TEST_SCALAR_TEST_OVERLOAD(half)
+EIGEN_TEST_SCALAR_TEST_OVERLOAD(bfloat16)
 
 #undef EIGEN_TEST_SCALAR_TEST_OVERLOAD
 
@@ -539,7 +546,7 @@ template<typename T1,typename T2>
 typename NumTraits<typename NumTraits<T1>::Real>::NonInteger test_relative_error(const T1 &a, const T2 &b, typename internal::enable_if<internal::is_arithmetic<typename NumTraits<T1>::Real>::value, T1>::type* = 0)
 {
   typedef typename NumTraits<typename NumTraits<T1>::Real>::NonInteger RealScalar;
-  return numext::sqrt(RealScalar(numext::abs2(a-b))/RealScalar((numext::mini)(numext::abs2(a),numext::abs2(b))));
+  return numext::sqrt(RealScalar(numext::abs2(a-b))/(numext::mini)(RealScalar(numext::abs2(a)),RealScalar(numext::abs2(b))));
 }
 
 template<typename T>

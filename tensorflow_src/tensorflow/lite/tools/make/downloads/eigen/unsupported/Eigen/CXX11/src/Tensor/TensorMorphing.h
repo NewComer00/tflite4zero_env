@@ -54,6 +54,7 @@ template<typename NewDimensions, typename XprType>
 class TensorReshapingOp : public TensorBase<TensorReshapingOp<NewDimensions, XprType>, WriteAccessors>
 {
   public:
+  typedef TensorBase<TensorReshapingOp<NewDimensions, XprType>, WriteAccessors> Base;
   typedef typename Eigen::internal::traits<TensorReshapingOp>::Scalar Scalar;
   typedef typename internal::remove_const<typename XprType::CoeffReturnType>::type CoeffReturnType;
   typedef typename Eigen::internal::nested<TensorReshapingOp>::type Nested;
@@ -70,24 +71,7 @@ class TensorReshapingOp : public TensorBase<TensorReshapingOp<NewDimensions, Xpr
     const typename internal::remove_all<typename XprType::Nested>::type&
     expression() const { return m_xpr; }
 
-    EIGEN_DEVICE_FUNC
-    EIGEN_STRONG_INLINE TensorReshapingOp& operator = (const TensorReshapingOp& other)
-    {
-      typedef TensorAssignOp<TensorReshapingOp, const TensorReshapingOp> Assign;
-      Assign assign(*this, other);
-      internal::TensorExecutor<const Assign, DefaultDevice>::run(assign, DefaultDevice());
-      return *this;
-    }
-
-    template<typename OtherDerived>
-    EIGEN_DEVICE_FUNC
-    EIGEN_STRONG_INLINE TensorReshapingOp& operator = (const OtherDerived& other)
-    {
-      typedef TensorAssignOp<TensorReshapingOp, const OtherDerived> Assign;
-      Assign assign(*this, other);
-      internal::TensorExecutor<const Assign, DefaultDevice>::run(assign, DefaultDevice());
-      return *this;
-    }
+    EIGEN_TENSOR_INHERIT_ASSIGNMENT_OPERATORS(TensorReshapingOp)
 
   protected:
     typename XprType::Nested m_xpr;
@@ -357,6 +341,7 @@ template<typename StartIndices, typename Sizes, typename XprType>
 class TensorSlicingOp : public TensorBase<TensorSlicingOp<StartIndices, Sizes, XprType> >
 {
   public:
+  typedef TensorBase<TensorSlicingOp<StartIndices, Sizes, XprType> > Base;
   typedef typename Eigen::internal::traits<TensorSlicingOp>::Scalar Scalar;
   typedef typename XprType::CoeffReturnType CoeffReturnType;
   typedef typename Eigen::internal::nested<TensorSlicingOp>::type Nested;
@@ -375,25 +360,7 @@ class TensorSlicingOp : public TensorBase<TensorSlicingOp<StartIndices, Sizes, X
     const typename internal::remove_all<typename XprType::Nested>::type&
     expression() const { return m_xpr; }
 
-    template<typename OtherDerived>
-    EIGEN_DEVICE_FUNC
-    EIGEN_STRONG_INLINE TensorSlicingOp& operator = (const OtherDerived& other)
-    {
-      typedef TensorAssignOp<TensorSlicingOp, const OtherDerived> Assign;
-      Assign assign(*this, other);
-      internal::TensorExecutor<const Assign, DefaultDevice>::run(assign, DefaultDevice());
-      return *this;
-    }
-
-    EIGEN_DEVICE_FUNC
-    EIGEN_STRONG_INLINE TensorSlicingOp& operator = (const TensorSlicingOp& other)
-    {
-      typedef TensorAssignOp<TensorSlicingOp, const TensorSlicingOp> Assign;
-      Assign assign(*this, other);
-      internal::TensorExecutor<const Assign, DefaultDevice>::run(assign, DefaultDevice());
-      return *this;
-    }
-
+    EIGEN_TENSOR_INHERIT_ASSIGNMENT_OPERATORS(TensorSlicingOp)
 
   protected:
     typename XprType::Nested m_xpr;
@@ -456,7 +423,9 @@ struct TensorEvaluator<const TensorSlicingOp<StartIndices, Sizes, ArgType>, Devi
     // slice offsets and sizes.
     IsAligned         = false,
     PacketAccess      = TensorEvaluator<ArgType, Device>::PacketAccess,
-    BlockAccess       = TensorEvaluator<ArgType, Device>::BlockAccess,
+    BlockAccess       = TensorEvaluator<ArgType, Device>::BlockAccess &&
+                        // FIXME: Temporary workaround for bug in slicing of bool tensors.
+                        !internal::is_same<typename internal::remove_const<Scalar>::type, bool>::value,
     PreferBlockAccess = true,
     Layout            = TensorEvaluator<ArgType, Device>::Layout,
     CoordAccess       = false,
@@ -482,12 +451,16 @@ struct TensorEvaluator<const TensorSlicingOp<StartIndices, Sizes, ArgType>, Devi
     }
 
     m_is_identity = true;
+    bool degenerate = false;
     for (int i = 0; i < internal::array_size<Dimensions>::value; ++i) {
       eigen_assert(m_impl.dimensions()[i] >=
                    op.sizes()[i] + op.startIndices()[i]);
       if (m_impl.dimensions()[i] != op.sizes()[i] ||
           op.startIndices()[i] != 0) {
         m_is_identity = false;
+      }
+      if (op.sizes()[i] == 0) { // we have an empty size
+        degenerate = true;
       }
     }
 
@@ -506,8 +479,8 @@ struct TensorEvaluator<const TensorSlicingOp<StartIndices, Sizes, ArgType>, Devi
       m_outputStrides[0] = 1;
       for (int i = 1; i < NumDims; ++i) {
         m_outputStrides[i] = m_outputStrides[i-1] * output_dims[i-1];
-        m_fastOutputStrides[i] = internal::TensorIntDivisor<Index>(m_outputStrides[i]);
-      }
+        // NOTE: if tensor is degenerate, we send 1 to prevent TensorIntDivisor constructor crash
+        m_fastOutputStrides[i] = internal::TensorIntDivisor<Index>(degenerate ? 1 : m_outputStrides[i]);      }
     } else {
       m_inputStrides[NumDims-1] = 1;
       for (int i = NumDims - 2; i >= 0; --i) {
@@ -518,13 +491,12 @@ struct TensorEvaluator<const TensorSlicingOp<StartIndices, Sizes, ArgType>, Devi
       m_outputStrides[NumDims-1] = 1;
       for (int i = NumDims - 2; i >= 0; --i) {
         m_outputStrides[i] = m_outputStrides[i+1] * output_dims[i+1];
-        m_fastOutputStrides[i] = internal::TensorIntDivisor<Index>(m_outputStrides[i]);
-      }
+        // NOTE: if tensor is degenerate, we send 1 to prevent TensorIntDivisor constructor crash
+        m_fastOutputStrides[i] = internal::TensorIntDivisor<Index>(degenerate ? 1 : m_outputStrides[i]);      }
     }
   }
 
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Dimensions& dimensions() const { return m_dimensions; }
-
 
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool evalSubExprsIfNeeded(EvaluatorPointerType data) {
     m_impl.evalSubExprsIfNeeded(NULL);
@@ -559,6 +531,14 @@ struct TensorEvaluator<const TensorSlicingOp<StartIndices, Sizes, ArgType>, Devi
     }
     return true;
   }
+
+#ifdef EIGEN_USE_THREADS
+  template <typename EvalSubExprsCallback>
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void evalSubExprsIfNeededAsync(
+      EvaluatorPointerType /*data*/, EvalSubExprsCallback done) {
+    m_impl.evalSubExprsIfNeededAsync(nullptr, [done](bool) { done(true); });
+  }
+#endif  // EIGEN_USE_THREADS
 
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void cleanup() {
     m_impl.cleanup();
@@ -864,6 +844,7 @@ template<typename StartIndices, typename StopIndices, typename Strides, typename
 class TensorStridingSlicingOp : public TensorBase<TensorStridingSlicingOp<StartIndices, StopIndices, Strides, XprType> >
 {
   public:
+  typedef TensorBase<TensorStridingSlicingOp<StartIndices, StopIndices, Strides, XprType> > Base;
   typedef typename internal::traits<TensorStridingSlicingOp>::Scalar Scalar;
   typedef typename XprType::CoeffReturnType CoeffReturnType;
   typedef typename internal::nested<TensorStridingSlicingOp>::type Nested;
@@ -887,26 +868,7 @@ class TensorStridingSlicingOp : public TensorBase<TensorStridingSlicingOp<StartI
     const typename internal::remove_all<typename XprType::Nested>::type&
     expression() const { return m_xpr; }
 
-    EIGEN_DEVICE_FUNC
-    EIGEN_STRONG_INLINE TensorStridingSlicingOp& operator = (const TensorStridingSlicingOp& other)
-    {
-      typedef TensorAssignOp<TensorStridingSlicingOp, const TensorStridingSlicingOp> Assign;
-      Assign assign(*this, other);
-      internal::TensorExecutor<const Assign, DefaultDevice>::run(
-          assign, DefaultDevice());
-      return *this;
-    }
-
-    template<typename OtherDerived>
-    EIGEN_DEVICE_FUNC
-    EIGEN_STRONG_INLINE TensorStridingSlicingOp& operator = (const OtherDerived& other)
-    {
-      typedef TensorAssignOp<TensorStridingSlicingOp, const OtherDerived> Assign;
-      Assign assign(*this, other);
-      internal::TensorExecutor<const Assign, DefaultDevice>::run(
-          assign, DefaultDevice());
-      return *this;
-    }
+    EIGEN_TENSOR_INHERIT_ASSIGNMENT_OPERATORS(TensorStridingSlicingOp)
 
   protected:
     typename XprType::Nested m_xpr;

@@ -204,7 +204,7 @@ static void test_simple_reductions() {
           ++count;
         }
       }
-      VERIFY_IS_APPROX(result(i, j), sum / count);
+      VERIFY_IS_APPROX(result(i, j), sum / Scalar(count));
     }
   }
 
@@ -511,6 +511,7 @@ EIGEN_DECLARE_TEST(cxx11_tensor_reduction) {
   CALL_SUBTEST(( test_simple_reductions<float,ColMajor>() ));
   CALL_SUBTEST(( test_simple_reductions<float,RowMajor>() ));
   CALL_SUBTEST(( test_simple_reductions<Eigen::half,ColMajor>() ));
+  CALL_SUBTEST(( test_simple_reductions<Eigen::bfloat16,ColMajor>() ));
   CALL_SUBTEST(test_reductions_in_expr<ColMajor>());
   CALL_SUBTEST(test_reductions_in_expr<RowMajor>());
   CALL_SUBTEST(test_full_reductions<ColMajor>());

@@ -75,6 +75,13 @@ template<typename Scalar, int Options> void quaternion(void)
   q1.coeffs().setRandom();
   VERIFY_IS_APPROX(q1.coeffs(), (q1*q2).coeffs());
 
+#ifndef EIGEN_NO_IO
+  // Printing
+  std::ostringstream ss;
+  ss << q2;
+  VERIFY(ss.str() == "0i + 0j + 0k + 1");
+#endif
+
   // concatenation
   q1 *= q2;
 
@@ -325,7 +332,9 @@ EIGEN_DECLARE_TEST(geo_quaternion)
     CALL_SUBTEST_2(( quaternionAlignment<double>() ));
     CALL_SUBTEST_2( mapQuaternion<double>() );
 
+#ifndef EIGEN_TEST_ANNOYING_SCALAR_DONT_THROW
     AnnoyingScalar::dont_throw = true;
+#endif
     CALL_SUBTEST_3(( quaternion<AnnoyingScalar,AutoAlign>() ));
   }
 }
