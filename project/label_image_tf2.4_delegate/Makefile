@@ -1,9 +1,10 @@
 # 该Makefile应当通过build_project.sh脚本执行
 
 
-TARGET := \
+# 最终可执行文件名，是当前项目的目录名。
+# 如label_image_tf1.14
+TARGET_EXEC := \
 	$(notdir $(patsubst %/,%,$(dir $(lastword $(abspath $(MAKEFILE_LIST))))))
-TARGET_LIB := lib$(TARGET).so
 
 # 包含所有项目的目录
 PROJS_DIR := ./project
@@ -13,23 +14,23 @@ TF_DIR := ./tensorflow_src
 TF_DEPENDENCY_DIR := $(TF_DIR)/tensorflow/lite/tools/make/downloads
 
 # 生成好的项目所在目录，项目obj和可执行文件所在目录
-BUILD_DIR := ./build/$(TARGET)
+BUILD_DIR := ./build/$(TARGET_EXEC)
 OBJ_DIR := $(BUILD_DIR)/obj
 BIN_DIR := $(BUILD_DIR)/bin
-LIB_GEN_DIR := $(BUILD_DIR)/lib
 
 # 项目源文件、头文件和库文件所在目录
-SRC_DIRS := $(PROJS_DIR)/$(TARGET)/src
-INC_DIRS := $(PROJS_DIR)/$(TARGET)/inc \
+SRC_DIRS := $(PROJS_DIR)/$(TARGET_EXEC)/src \
+	$(PROJS_DIR)/$(TARGET_EXEC)/dummy_delegate/src
+INC_DIRS := $(PROJS_DIR)/$(TARGET_EXEC)/inc \
+	$(PROJS_DIR)/$(TARGET_EXEC)/dummy_delegate/inc \
 	$(TF_DIR) \
 	$(TF_DEPENDENCY_DIR)/flatbuffers/include \
-	$(TF_DEPENDENCY_DIR)/eigen \
 	$(TF_DEPENDENCY_DIR)/absl \
 	$(TF_DEPENDENCY_DIR)/googletest/googlemock/include \
 	$(TF_DEPENDENCY_DIR)/googletest/googletest/include 
 LIB_DIRS := ./lib
 
-# 所有目录下的源文件
+# 符合要求的源文件
 SRCS += $(foreach src_dir,$(SRC_DIRS),$(wildcard $(src_dir)/*.cpp))
 SRCS += $(foreach src_dir,$(SRC_DIRS),$(wildcard $(src_dir)/*.cc))
 SRCS += $(foreach src_dir,$(SRC_DIRS),$(wildcard $(src_dir)/*.c))
@@ -92,15 +93,9 @@ LDFLAGS := \
 
 
 # 链接所有obj文件
-#$(BIN_DIR)/$(TARGET): $(OBJS)
-#	mkdir -p $(dir $@)
-#	$(CXX) $(OBJS) -o $@ $(LDFLAGS) \
-#		-L$(LIB_GEN_DIR) -$(patsubst lib%.so,l%,$(TARGET_LIB))
-
-# 链接所有obj文件，生成库文件
-$(LIB_GEN_DIR)/$(TARGET_LIB): $(OBJS)
+$(BIN_DIR)/$(TARGET_EXEC): $(OBJS)
 	mkdir -p $(dir $@)
-	$(CXX) $(LDFLAGS) -shared $< -o $@
+	$(CXX) $(OBJS) -o $@ $(LDFLAGS)
 
 # 编译所有c源文件
 $(OBJ_DIR)/%.c.o: %.c
