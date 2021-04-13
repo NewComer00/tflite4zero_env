@@ -1,6 +1,9 @@
 # 该Makefile应当通过build_project.sh脚本执行
 
 
+# =========================================================
+
+
 # 最终可执行文件名，是当前项目的目录名。
 # 如label_image_tf1.14
 TARGET_EXEC := \
@@ -20,9 +23,9 @@ BIN_DIR := $(BUILD_DIR)/bin
 
 # 项目源文件、头文件和库文件所在目录
 SRC_DIRS := $(PROJS_DIR)/$(TARGET_EXEC)/src \
-	$(PROJS_DIR)/$(TARGET_EXEC)/dummy_delegate/src
+	$(PROJS_DIR)/$(TARGET_EXEC)/qpu_delegate/src
 INC_DIRS := $(PROJS_DIR)/$(TARGET_EXEC)/inc \
-	$(PROJS_DIR)/$(TARGET_EXEC)/dummy_delegate/inc \
+	$(PROJS_DIR)/$(TARGET_EXEC)/qpu_delegate/inc \
 	$(TF_DIR) \
 	$(TF_DEPENDENCY_DIR)/flatbuffers/include \
 	$(TF_DEPENDENCY_DIR)/absl \
@@ -59,7 +62,8 @@ OBJS := $(SRCS:%=$(OBJ_DIR)/%.o)
 
 
 # 为编译器指定要包含的头文件目录
-CPPFLAGS := $(addprefix -I,$(INC_DIRS))
+CPPFLAGS := $(addprefix -I,$(INC_DIRS)) \
+	-DDEBUG -g
 
 # 为C++编译器指定预编译参数
 CXXFLAGS += \

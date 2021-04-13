@@ -528,7 +528,8 @@ int Main(int argc, char** argv) {
             strtol(optarg, nullptr, 10);  // NOLINT(runtime/deprecated_fn)
         break;
 	  case 'd': // added dummy delegate
-        s.dummy_delegate = optarg;
+        s.dummy_delegate = 
+            strtol(optarg, nullptr, 10);  // NOLINT(runtime/deprecated_fn)
         break;
       case 'e':
         s.max_profiling_buffer_entries =
